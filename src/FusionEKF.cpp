@@ -60,7 +60,6 @@ FusionEKF::FusionEKF() {
   //set the acceleration noise components
   noise_ax = 9; // * Use noise_ax = 9 for your Q matrix.
   noise_ay = 9; // * Use noise_ay = 9 for your Q matrix.
-
 }
 
 /**
@@ -83,11 +82,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       // Convert radar from polar to cartesian coordinates and initialize state.
       float rho = measurement_pack.raw_measurements_(0);
       float phi = measurement_pack.raw_measurements_(1);
+      float rho_dot = measurement_pack.raw_measurements_(3);
       ekf_.x_(0) = rho * cos(phi);
-      ekf_.x_(1) = rho * sin(phi);
-      ekf_.x_(2) = 0 ;
-      ekf_.x_(3) = 0 ;
-
+      ekf_.x_(1) = rho * sin(phi);        
+      ekf_.x_(2) = rho_dot * cos(phi) ;
+      ekf_.x_(3) = rho_dot * sin(phi) ;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       // Initialize state.
@@ -95,20 +94,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       ekf_.x_(1) = measurement_pack.raw_measurements_(1);
       ekf_.x_(2) = 0 ;
       ekf_.x_(3) = 0 ;
-
-      //swap timestamps
-      previous_timestamp_ = measurement_pack.timestamp_;
     }
+
+    //swap timestamps
+    previous_timestamp_ = measurement_pack.timestamp_;
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
     return;
   }
 
-  /**
-    ************************************************** Prediction **************************************************
-   */
-
+  /**************************************************** Prediction ***************************************************/
   //calculate difference between timestamps in seconds.
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
   previous_timestamp_ = measurement_pack.timestamp_;
@@ -126,23 +122,23 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
         dt_3 / 2 * noise_ax, 0, dt_2 * noise_ax, 0,
         0, dt_3 / 2 * noise_ay, 0, dt_2 * noise_ay;
 
-  ekf_.Predict();
+   ekf_.Predict();
 
-  /**
-   ************************************************** Update **************************************************
-   */
-
+  /**************************************************** Update ***************************************************/
   /**
    * - Use the sensor type to perform the update step.
    * - Update the state and covariance matrices.
    */
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-    // TODO: Radar updates
+    // Radar updates
+    Hj_ = tools.CalculateJacobian(ekf_.x_);
+    ekf_.Init(ekf_.x_, ekf_.P_, ekf_.F_, Hj_, R_radar_, ekf_.Q_);
+    ekf_.UpdateEKF(measurement_pack.raw_measurements_);
 
   } else {
     // Laser updates
-    ekf_.Init(ekf_.x_, ekf_.P_, ekf_.F_, H_laser_, R_laser_, ekf_.Q_);
+    ekf_.Init(ekf_.x_, ekf_.P_, ekf_.F_, H_laser_, R_laser_, ekf_.Q_);    
     ekf_.Update(measurement_pack.raw_measurements_);
   }
 
