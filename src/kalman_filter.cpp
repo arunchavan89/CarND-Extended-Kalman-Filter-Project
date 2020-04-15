@@ -52,6 +52,62 @@ void KalmanFilter::Update(const VectorXd &z) {
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
-   * TODO: update the state by using Extended Kalman Filter equations
+   * update the state by using Extended Kalman Filter equations
    */
+    float px = x_(0);
+    float py = x_(1);
+    float vx = x_(2);
+    float vy = x_(3);
+
+    //calculate readings from polar to cartesian
+    float rho = sqrt(px*px + vx*vy);
+    float phi = atan2(py, px);
+    float rho_dot;
+
+    // check if rho_dot is non negative value
+    if (rho_dot < 0)
+    {
+      rho_dot = 0;
+    }
+    else
+    {
+      rho_dot = (px*vx + py*vy) / rho;
+    }
+    
+    VectorXd z_pred(3);
+    z_pred << rho, phi, rho_dot;
+    VectorXd y = z - z_pred;
+
+    /*
+     * Normalizing Angles
+     * In C++, atan2() returns values between -pi and pi. 
+     * When calculating phi in y = z - h(x) for radar measurements, 
+     * the resulting angle phi in the y vector should be adjusted so that it is between -pi and pi. 
+     * The Kalman filter is expecting small angle values between the range -pi and pi. 
+     * HINT: when working in radians, you can add 2π or subtract 2π until the angle is within the desired range
+    */
+    while ((y(1) < -M_PI) || (y(1) > M_PI))
+    {
+      if (y(1) < -M_PI)
+      {
+        y(1) += 2*M_PI;
+      }
+      if (y(1) > M_PI) 
+      {
+       y(1) -= 2*M_PI;
+      }      
+    }
+    
+    MatrixXd Ht = H_.transpose();
+    MatrixXd S = H_ * P_ * Ht + R_;
+    MatrixXd Si = S.inverse();
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
+
+    //new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.size();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * H_) * P_;
+  
 }
