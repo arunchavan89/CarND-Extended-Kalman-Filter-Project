@@ -6,11 +6,12 @@ Self-Driving Car Engineer Nanodegree Program
 * Kalman estimation markers are green triangles.
 
 ![](result.gif)
-
+[image1]: ./algorithm.png "algorithm"
 
 # Introduction
 
-* This project utilizes a kalman filter to estimate the state of a moving object of interest with noisy lidar and radar measurements. 
+* This project utilizes a kalman filter to estimate the state of a moving object of interest with noisy lidar and radar measurements.
+![alt text][image1]
 
 * This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases).
 
